@@ -1,0 +1,434 @@
+package project.utilities;
+
+import net.serenitybdd.core.Serenity;
+import net.thucydides.core.util.EnvironmentVariables;
+import net.thucydides.core.util.SystemEnvironmentVariables;
+
+public class DBQueries {
+	public static String sQuery_Rule_Description(String strDBCoulumn, String sMidRule, String sVersion) {
+
+		String sQuery = "SELECT " + strDBCoulumn + " FROM PAYER_RULES.VW_SUB_RULES WHERE MID_RULE_KEY = " + sMidRule
+				+ " AND RULE_VERSION = " + sVersion;
+		System.out.println("Query is : " + sQuery);
+		return sQuery;
+	}
+
+	public static String sQuery_RuleDetails(String sInstance, String sMidRule, String sDbColumn) {
+		String sQuery = "SELECT DISTINCT " + sDbColumn
+				+ " FROM IRDM.INTERP_RULES IR JOIN IRDM.INTERP_RULE_DETAILS IRD ON IR.INTERP_RULE_KEY = IRD.INTERP_RULE_KEY "
+				+ " JOIN IPDE.TASK_DETAILS TD ON TD.REFERENCE_RULE_ID = IR.INTERP_RULE_KEY "
+				+ " JOIN IPDE.TASK_TYPE_LKP TTL ON TTL.TASK_TYPE_KEY = TD.TASK_TYPE_KEY"
+				+ " JOIN IPDE.TASK_STATUS_LKP TSL ON TSL.TASK_STATUS_KEY = TD.TASK_STATUS_KEY "
+				+ " JOIN IPDE.USERS U ON U.USER_KEY = TD.TASK_USER_KEY WHERE     IR.IMPACT_KEY IN (SELECT IMPACT_KEY"
+				+ " FROM IRDM.INTERP_IMPACTS II JOIN IRDM.UPDATE_INSTANCES I ON I.UPDATE_INSTANCE_KEY = II.UPDATE_INSTANCE_KEY "
+				+ " WHERE UPDATE_INSTANCE_NAME = " +"'"+ sInstance +"'"+ ")AND IRD.MID_RULE_DOT_VERSION  = " + sMidRule;
+		System.out.println("Query is : " + sQuery);
+		return sQuery;
+	}
+
+	public static String sQuery_Editorial_Status(String sRefRuleId) {
+		String sQuery = "SELECT * FROM (SELECT EDITORIAL_STATUS_DESC FROM IPDE_HIST.TASK_DETAILS_HIST HI "
+				+ "JOIN IPDE.EDITORIAL_STATUS_LKP LKP ON HI.EDITORIAL_STATUS_KEY=LKP.EDITORIAL_STATUS_KEY "
+				+ "WHERE REFERENCE_RULE_ID =" + sRefRuleId + "  order by HIST_START DESC) WHERE ROWNUM=1";
+		System.out.println("Query is : " + sQuery);
+		return sQuery;
+	}
+	
+
+	public static String sQueryTaskTypeAndStatus(String sColumnName,String sInstanceName,String sMidRuleVersion){
+		String sQuery = " SELECT DISTINCT " + sColumnName + " FROM IRDM.INTERP_RULES IR JOIN IRDM.INTERP_RULE_DETAILS IRD ON IR.INTERP_RULE_KEY = IRD.INTERP_RULE_KEY JOIN IPDE.TASK_DETAILS TD ON TD.REFERENCE_RULE_ID = IR.INTERP_RULE_KEY LEFT JOIN \r\n" +
+				" IPDE.CPM_TASK_DETAILS CTD ON TD.TASK_DETAIL_KEY = CTD.TASK_DETAIL_KEY JOIN IPDE.TASK_TYPE_LKP TTL ON TTL.TASK_TYPE_KEY = CASE WHEN TD.TASK_TYPE_KEY = 16 THEN CTD.TASK_TYPE_KEY  ELSE TD.TASK_TYPE_KEY END JOIN \r\n" +
+				" IPDE.TASK_STATUS_LKP TSL ON TSL.TASK_STATUS_KEY = CASE WHEN TD.TASK_TYPE_KEY = 16 THEN CTD.TASK_STATUS_KEY ELSE TD.TASK_STATUS_KEY END  JOIN IPDE.USERS U  ON U.USER_KEY = CASE WHEN TD.TASK_TYPE_KEY = 16 \r\n" +
+				" THEN CTD.USER_KEY ELSE TD.TASK_USER_KEY END WHERE IR.IMPACT_KEY IN (SELECT IMPACT_KEY FROM IRDM.INTERP_IMPACTS II JOIN IRDM.UPDATE_INSTANCES I ON I.UPDATE_INSTANCE_KEY = II.UPDATE_INSTANCE_KEY \r\n" +
+				" WHERE UPDATE_INSTANCE_NAME = '"+sInstanceName+"') AND IRD.MID_RULE_DOT_VERSION  ='"+sMidRuleVersion+"' and rownum ='1'";
+		System.out.println("Query is : " + sQuery);
+		return sQuery;
+	}
+	
+	public static String sQuery_Assigned_User(String sRefRuleId) {
+		String sQuery = "SELECT USER_ID FROM IPDE.USERS U JOIN  IPDE.TASK_DETAILS T ON U.USER_KEY= T.REVIEW_USER_KEY WHERE  T.REFERENCE_RULE_ID =" + sRefRuleId;
+		System.out.println("Query is : " + sQuery);
+		return sQuery;
+	}
+
+	public static String sQuery_ICDCodeDesc(String sICDCode) {
+		String sQuery = "SELECT ICD_DESC FROM MDM.DIAG_MASTER WHERE ICD_CODE ="+"'"+sICDCode+"'";
+		System.out.println("Query is : " + sQuery);
+		return sQuery;
+
+	}
+	
+
+	public static String sQueryRetriveTwoPayerRule(String sTaskReview,String sInstanceName,String sLibraryStatus){
+ 		
+		String sQuery = "WITH CTE  AS (  SELECT IR.SUB_RULE_KEY,  IRD.MID_RULE_DOT_VERSION,   IRD.LIBRARY_STATUS_DESC, PAYERS_4_RULE,IRD.ARD_EXISTS_YN, TTL.TASK_TYPE_DESC, TSL.TASK_STATUS_DESC, U.USER_ID,  IRDM.CLIST (UGL.UPDATE_GROUP_NAME) PROPOSAL_TYPE  FROM IRDM.INTERP_RULES IR JOIN IRDM.INTERP_RULE_DETAILS IRD  ON IR.INTERP_RULE_KEY = IRD.INTERP_RULE_KEY  JOIN IPDE.TASK_DETAILS TD  ON TD.REFERENCE_RULE_ID = IR.INTERP_RULE_KEY  JOIN IPDE.TASK_TYPE_LKP TTL  ON TTL.TASK_TYPE_KEY = TD.TASK_TYPE_KEY  JOIN IPDE.TASK_STATUS_LKP TSL ON TSL.TASK_STATUS_KEY = TD.TASK_STATUS_KEY JOIN IPDE.USERS U ON U.USER_KEY = TD.TASK_USER_KEY JOIN IRDM.INTERP_RULE_ICD IRI  ON IRI.INTERP_RULE_KEY = IR.INTERP_RULE_KEY  JOIN IRDM.INTERP_ICD_SOURCES IIS   ON IIS.INTERP_RULE_ICD_KEY = IRI.INTERP_RULE_ICD_KEY  JOIN IRDM.UPDATE_GROUP_LKP UGL   ON UGL.UPDATE_GROUP_KEY = IRI.UPDATE_GROUP_KEY  WHERE IR.IMPACT_KEY IN (SELECT IMPACT_KEY  FROM IRDM.INTERP_IMPACTS II  JOIN IRDM.UPDATE_INSTANCES I  II.UPDATE_INSTANCE_KEY\r\n" +
+		"WHERE UPDATE_INSTANCE_NAME = '"+sInstanceName+"')  AND TTL.TASK_TYPE_DESC = '"+sTaskReview+"' AND TSL.TASK_STATUS_DESC = 'Not Started'   AND IRD.LIBRARY_STATUS_DESC ='"+sLibraryStatus+"'\r\n" +
+		"GROUP BY IR.SUB_RULE_KEY,   IRD.MID_RULE_DOT_VERSION,   IRD.LIBRARY_STATUS_DESC, IRD.ARD_EXISTS_YN,  TTL.TASK_TYPE_DESC, PAYERS_4_RULE,\r\n" +
+		"TSL.TASK_STATUS_DESC,  U.USER_ID) SELECT MID_RULE_DOT_VERSION FROM CTE    where PAYERS_4_RULE like '%,%'";
+		return sQuery;
+	}	
+
+	public static String sQuery_Rule_Status(String sInstance, String sMidRule, String sDbColumn) {
+		String sQuery = "SELECT DISTINCT " + sDbColumn + " FROM IRDM.INTERP_RULES IR JOIN IRDM.INTERP_RULE_DETAILS IRD "
+				+ "ON IR.INTERP_RULE_KEY = IRD.INTERP_RULE_KEY JOIN IPDE.TASK_DETAILS TD ON TD.REFERENCE_RULE_ID = IR.INTERP_RULE_KEY LEFT "
+				+ "JOIN IPDE.CPM_TASK_DETAILS CTD ON TD.TASK_DETAIL_KEY = CTD.TASK_DETAIL_KEY JOIN IPDE.TASK_TYPE_LKP TTL ON "
+				+ "TTL.TASK_TYPE_KEY = CASE WHEN TD.TASK_TYPE_KEY = 16 THEN CTD.TASK_TYPE_KEY  ELSE TD.TASK_TYPE_KEY END "
+				+ "JOIN IPDE.TASK_STATUS_LKP TSL ON TSL.TASK_STATUS_KEY = CASE WHEN TD.TASK_TYPE_KEY = 16 THEN CTD.TASK_STATUS_KEY ELSE "
+				+ "TD.TASK_STATUS_KEY END  JOIN IPDE.USERS U  ON U.USER_KEY = CASE WHEN TD.TASK_TYPE_KEY = 16 THEN CTD.USER_KEY ELSE TD.TASK_USER_KEY END"
+				+ " WHERE IR.IMPACT_KEY IN (SELECT IMPACT_KEY FROM IRDM.INTERP_IMPACTS II JOIN IRDM.UPDATE_INSTANCES I ON "
+				+ "I.UPDATE_INSTANCE_KEY = II.UPDATE_INSTANCE_KEY WHERE UPDATE_INSTANCE_NAME = " + "'" + sInstance + "'"
+				+ ") AND IRD.MID_RULE_DOT_VERSION  =" + "'" + sMidRule + "'";
+		System.out.println("Query is : " + sQuery);
+		return sQuery;
+
+	}
+	
+	public static String sQuery_TestingRule_Details(String sRule, String sVersion, String sDbColumn){
+		
+		String sQuery="SELECT "+ sDbColumn  +" FROM AUTH_MASTER.TEST_LOG  WHERE SUB_RULE_KEY IN ( SELECT SUB_RULE_KEY FROM RULES.SUB_RULES WHERE"
+				+ " MID_RULE_KEY="+sRule+" AND RULE_VERSION="+sVersion+")";
+		System.out.println("Query is : " + sQuery);
+		return sQuery;
+	}
+	
+	public static String sQuery_RMR_Status(String sCode,String sDbColumn){
+		String sQuery="SELECT * FROM (SELECT "+ sDbColumn  +" FROM AUTH_MASTER.WORK_STATUS_LOG WHERE WORK_UNIT_CODE='"+sCode+"') WHERE ROWNUM=1";
+		System.out.println("Query is : " + sQuery);
+		return sQuery;
+	}
+	
+
+	public static String queryForDropdownList(String sQueryCase, String sInstance, String sReview, String sColumn){
+		String sQuery="";
+		switch (sColumn) {
+		case "NOCASE":
+			
+			  sQuery="SELECT DISTINCT "+ sColumn  +" FROM IRDM.INTERP_RULES IR JOIN IRDM.INTERP_RULE_DETAILS IRD ON IR.INTERP_RULE_KEY = IRD.INTERP_RULE_KEY "
+	                    + "JOIN IPDE.TASK_DETAILS TD ON TD.REFERENCE_RULE_ID = IR.INTERP_RULE_KEY JOIN IPDE.TASK_TYPE_LKP TTL ON TTL.TASK_TYPE_KEY = TD.TASK_TYPE_KEY "
+	                    + "JOIN IPDE.TASK_STATUS_LKP TSL ON TSL.TASK_STATUS_KEY = TD.TASK_STATUS_KEY JOIN IPDE.USERS U ON U.USER_KEY = TD.TASK_USER_KEY "
+	                    + "JOIN IRDM.INTERP_RULE_ICD IRI ON IRI.INTERP_RULE_KEY = IR.INTERP_RULE_KEY JOIN IRDM.INTERP_ICD_SOURCES IIS ON IIS.INTERP_RULE_ICD_KEY = IRI.INTERP_RULE_ICD_KEY "
+	                    + "JOIN IRDM.UPDATE_GROUP_LKP UGL ON UGL.UPDATE_GROUP_KEY = IRI.UPDATE_GROUP_KEY LEFT JOIN IRDM.SUB_RULES_REF_PRO SRRP ON IR.INTERP_RULE_KEY = SRRP.INTERP_RULE_KEY "
+	                    + "JOIN IPDE.EDITORIAL_STATUS_LKP ESL ON ESL.EDITORIAL_STATUS_KEY  = TD.EDITORIAL_STATUS_KEY WHERE IR.IMPACT_KEY IN "
+	                    + "(SELECT IMPACT_KEY FROM IRDM.INTERP_IMPACTS II JOIN IRDM.UPDATE_INSTANCES I ON I.UPDATE_INSTANCE_KEY = II.UPDATE_INSTANCE_KEY "
+	                    + "WHERE UPDATE_INSTANCE_NAME = '"+ Serenity.sessionVariableCalled("IUInstanceName").toString() +"') AND TSL.TASK_STATUS_DESC in ('Started','Not Started') "
+	                    + "AND ((TTL.TASK_TYPE_DESC LIKE ('"+sReview+"%') AND U.USER_NAME in ('iht_ittest01')))";
+			
+			break;
+		case "TASK_STATUS_DESC":
+		case "TTL.TASK_TYPE_DESC":
+		case "IRI.ICD_CODE":
+		case "PAYERS_4_RULE":
+			sQuery = "SELECT DISTINCT "+ sColumn  +" " +
+					"" +
+					"   FROM IRDM.INTERP_RULES IR" +
+					"       JOIN IRDM.INTERP_RULE_DETAILS IRD" +
+					"          ON IR.INTERP_RULE_KEY = IRD.INTERP_RULE_KEY" +
+					"       JOIN IPDE.TASK_DETAILS TD ON TD.REFERENCE_RULE_ID = IR.INTERP_RULE_KEY" +
+					"       JOIN IPDE.TASK_TYPE_LKP TTL ON TTL.TASK_TYPE_KEY = TD.TASK_TYPE_KEY" +
+					"       JOIN IPDE.TASK_STATUS_LKP TSL" +
+					"          ON TSL.TASK_STATUS_KEY = TD.TASK_STATUS_KEY" +
+					"       JOIN IPDE.USERS U ON U.USER_KEY = TD.TASK_USER_KEY" +
+					"       JOIN IRDM.INTERP_RULE_ICD IRI" +
+					"         ON IRI.INTERP_RULE_KEY = IR.INTERP_RULE_KEY" +
+					"       JOIN IRDM.INTERP_ICD_SOURCES IIS" +
+					"         ON IIS.INTERP_RULE_ICD_KEY = IRI.INTERP_RULE_ICD_KEY" +
+					"       JOIN IRDM.UPDATE_GROUP_LKP UGL" +
+					"         ON UGL.UPDATE_GROUP_KEY = IRI.UPDATE_GROUP_KEY" +
+					"       LEFT JOIN IRDM.SUB_RULES_REF_PRO SRRP" +
+					"         ON IR.INTERP_RULE_KEY = SRRP.INTERP_RULE_KEY" +
+					"       JOIN IPDE.EDITORIAL_STATUS_LKP ESL" +
+					"         ON ESL.EDITORIAL_STATUS_KEY  = TD.EDITORIAL_STATUS_KEY" +
+					"       WHERE     IR.IMPACT_KEY IN (SELECT IMPACT_KEY" +
+					"                               FROM IRDM.INTERP_IMPACTS II" +
+					"                                    JOIN IRDM.UPDATE_INSTANCES I" +
+					"                                       ON I.UPDATE_INSTANCE_KEY =" +
+					"                                             II.UPDATE_INSTANCE_KEY" +
+					"                             WHERE UPDATE_INSTANCE_NAME = '"+sInstance+"')" +
+					"                            AND TSL.TASK_STATUS_DESC in ('Started','Not Started')" +
+					"                            AND ((TTL.TASK_TYPE_DESC LIKE ('Final PO Review%') AND U.USER_NAME in ('iht_ittest01') OR TTL.TASK_TYPE_DESC ='Potential Conflicts Review'))";
+					
+			break;
+			
+		case "IRD.ARD_EXISTS_YN":
+
+			sQuery = "SELECT COUNT( DISTINCT(MID_RULE_DOT_VERSION)) " +
+					"" +
+					"   FROM IRDM.INTERP_RULES IR" +
+					"       JOIN IRDM.INTERP_RULE_DETAILS IRD   ON IR.INTERP_RULE_KEY = IRD.INTERP_RULE_KEY" +
+					"       JOIN IPDE.TASK_DETAILS TD ON TD.REFERENCE_RULE_ID = IR.INTERP_RULE_KEY" +
+					"       JOIN IPDE.TASK_TYPE_LKP TTL ON TTL.TASK_TYPE_KEY = TD.TASK_TYPE_KEY" +
+					"       JOIN IPDE.TASK_STATUS_LKP TSL           ON TSL.TASK_STATUS_KEY = TD.TASK_STATUS_KEY" +
+					"       JOIN IPDE.USERS U ON U.USER_KEY = TD.TASK_USER_KEY" +
+					"       JOIN IRDM.INTERP_RULE_ICD IRI          ON IRI.INTERP_RULE_KEY = IR.INTERP_RULE_KEY" +
+					"       JOIN IRDM.INTERP_ICD_SOURCES IIS          ON IIS.INTERP_RULE_ICD_KEY = IRI.INTERP_RULE_ICD_KEY" +
+					"       JOIN IRDM.UPDATE_GROUP_LKP UGL          ON UGL.UPDATE_GROUP_KEY = IRI.UPDATE_GROUP_KEY" +
+					"       LEFT JOIN IRDM.SUB_RULES_REF_PRO SRRP          ON IR.INTERP_RULE_KEY = SRRP.INTERP_RULE_KEY" +
+					"       JOIN IPDE.EDITORIAL_STATUS_LKP ESL          ON ESL.EDITORIAL_STATUS_KEY  = TD.EDITORIAL_STATUS_KEY" +
+					"       WHERE     IR.IMPACT_KEY IN (SELECT IMPACT_KEY   FROM IRDM.INTERP_IMPACTS II" +
+					"                                    JOIN IRDM.UPDATE_INSTANCES I      ON I.UPDATE_INSTANCE_KEY =" +
+					"       II.UPDATE_INSTANCE_KEY   WHERE UPDATE_INSTANCE_NAME = '"+ Serenity.sessionVariableCalled("IUInstanceName").toString() +"') and IRD.ARD_EXISTS_YN = 'Y'" +
+					"                            AND TSL.TASK_STATUS_DESC in ('Started','Not Started')" +
+					"                            AND ((TTL.TASK_TYPE_DESC LIKE ('Final PO Review%') AND U.USER_NAME in ('iht_ittest01') OR TTL.TASK_TYPE_DESC ='Potential Conflicts Review'))";
+					
+			break;
+			
+		case "ICDCODECOUNT":
+
+			sQuery = "SELECT COUNT (IRI.ICD_CODE) " +
+					"" +
+					"   FROM IRDM.INTERP_RULES IR" +
+					"       JOIN IRDM.INTERP_RULE_DETAILS IRD   ON IR.INTERP_RULE_KEY = IRD.INTERP_RULE_KEY" +
+					"       JOIN IPDE.TASK_DETAILS TD ON TD.REFERENCE_RULE_ID = IR.INTERP_RULE_KEY" +
+					"       JOIN IPDE.TASK_TYPE_LKP TTL ON TTL.TASK_TYPE_KEY = TD.TASK_TYPE_KEY" +
+					"       JOIN IPDE.TASK_STATUS_LKP TSL           ON TSL.TASK_STATUS_KEY = TD.TASK_STATUS_KEY" +
+					"       JOIN IPDE.USERS U ON U.USER_KEY = TD.TASK_USER_KEY" +
+					"       JOIN IRDM.INTERP_RULE_ICD IRI          ON IRI.INTERP_RULE_KEY = IR.INTERP_RULE_KEY" +
+					"       JOIN IRDM.INTERP_ICD_SOURCES IIS          ON IIS.INTERP_RULE_ICD_KEY = IRI.INTERP_RULE_ICD_KEY" +
+					"       JOIN IRDM.UPDATE_GROUP_LKP UGL          ON UGL.UPDATE_GROUP_KEY = IRI.UPDATE_GROUP_KEY" +
+					"       LEFT JOIN IRDM.SUB_RULES_REF_PRO SRRP          ON IR.INTERP_RULE_KEY = SRRP.INTERP_RULE_KEY" +
+					"       JOIN IPDE.EDITORIAL_STATUS_LKP ESL          ON ESL.EDITORIAL_STATUS_KEY  = TD.EDITORIAL_STATUS_KEY" +
+					"       WHERE     IR.IMPACT_KEY IN (SELECT IMPACT_KEY   FROM IRDM.INTERP_IMPACTS II" +
+					"                                    JOIN IRDM.UPDATE_INSTANCES I      ON I.UPDATE_INSTANCE_KEY =" +
+					"       II.UPDATE_INSTANCE_KEY   WHERE UPDATE_INSTANCE_NAME = '"+ Serenity.sessionVariableCalled("IUInstanceName").toString() +"') AND IRI.ICD_CODE='"+sInstance+"'" +
+					"                            AND TSL.TASK_STATUS_DESC in ('Started','Not Started')" +
+					"                            AND ((TTL.TASK_TYPE_DESC LIKE ('Final PO Review%') AND U.USER_NAME in ('iht_ittest01') OR TTL.TASK_TYPE_DESC ='Potential Conflicts Review'))";
+					
+			break;
+
+			
+		case "IRD.MED_POL_TITLE":
+		case "IRD.TOPIC_TITLE":
+		case "IRD.DP_DESC":
+		case "UGL.UPDATE_GROUP_NAME":
+			sQuery="SELECT DISTINCT "+ sColumn  +" FROM IRDM.INTERP_RULES IR JOIN IRDM.INTERP_RULE_DETAILS IRD ON IR.INTERP_RULE_KEY = IRD.INTERP_RULE_KEY "
+					+ "JOIN IPDE.TASK_DETAILS TD ON TD.REFERENCE_RULE_ID = IR.INTERP_RULE_KEY JOIN IPDE.TASK_TYPE_LKP TTL ON TTL.TASK_TYPE_KEY = TD.TASK_TYPE_KEY "
+					+ "JOIN IPDE.TASK_STATUS_LKP TSL ON TSL.TASK_STATUS_KEY = TD.TASK_STATUS_KEY JOIN IPDE.USERS U ON U.USER_KEY = TD.TASK_USER_KEY "
+					+ "JOIN IRDM.INTERP_RULE_ICD IRI ON IRI.INTERP_RULE_KEY = IR.INTERP_RULE_KEY JOIN IRDM.INTERP_ICD_SOURCES IIS ON IIS.INTERP_RULE_ICD_KEY = IRI.INTERP_RULE_ICD_KEY "
+					+ "JOIN IRDM.UPDATE_GROUP_LKP UGL ON UGL.UPDATE_GROUP_KEY = IRI.UPDATE_GROUP_KEY LEFT JOIN IRDM.SUB_RULES_REF_PRO SRRP ON IR.INTERP_RULE_KEY = SRRP.INTERP_RULE_KEY "
+					+ "JOIN IPDE.EDITORIAL_STATUS_LKP ESL ON ESL.EDITORIAL_STATUS_KEY  = TD.EDITORIAL_STATUS_KEY WHERE IR.IMPACT_KEY IN "
+					+ "(SELECT IMPACT_KEY FROM IRDM.INTERP_IMPACTS II JOIN IRDM.UPDATE_INSTANCES I ON I.UPDATE_INSTANCE_KEY = II.UPDATE_INSTANCE_KEY "
+					+ "WHERE UPDATE_INSTANCE_NAME = '"+sInstance+"') AND TSL.TASK_STATUS_DESC in ('Started','Not Started') "
+					+ "AND ((TTL.TASK_TYPE_DESC LIKE ('"+sReview+"%') AND U.USER_NAME in ('iht_ittest01')))";
+			break;
+//		case "IRD.TOPIC_TITLE":
+//			sQuery="SELECT DISTINCT "+ sColumn  +" FROM IRDM.INTERP_RULES IR JOIN IRDM.INTERP_RULE_DETAILS IRD ON IR.INTERP_RULE_KEY = IRD.INTERP_RULE_KEY "
+//					+ "JOIN IPDE.TASK_DETAILS TD ON TD.REFERENCE_RULE_ID = IR.INTERP_RULE_KEY JOIN IPDE.TASK_TYPE_LKP TTL ON TTL.TASK_TYPE_KEY = TD.TASK_TYPE_KEY "
+//					+ "JOIN IPDE.TASK_STATUS_LKP TSL ON TSL.TASK_STATUS_KEY = TD.TASK_STATUS_KEY JOIN IPDE.USERS U ON U.USER_KEY = TD.TASK_USER_KEY "
+//					+ "JOIN IRDM.INTERP_RULE_ICD IRI ON IRI.INTERP_RULE_KEY = IR.INTERP_RULE_KEY JOIN IRDM.INTERP_ICD_SOURCES IIS ON IIS.INTERP_RULE_ICD_KEY = IRI.INTERP_RULE_ICD_KEY "
+//					+ "JOIN IRDM.UPDATE_GROUP_LKP UGL ON UGL.UPDATE_GROUP_KEY = IRI.UPDATE_GROUP_KEY LEFT JOIN IRDM.SUB_RULES_REF_PRO SRRP ON IR.INTERP_RULE_KEY = SRRP.INTERP_RULE_KEY "
+//					+ "JOIN IPDE.EDITORIAL_STATUS_LKP ESL ON ESL.EDITORIAL_STATUS_KEY  = TD.EDITORIAL_STATUS_KEY WHERE IR.IMPACT_KEY IN "
+//					+ "(SELECT IMPACT_KEY FROM IRDM.INTERP_IMPACTS II JOIN IRDM.UPDATE_INSTANCES I ON I.UPDATE_INSTANCE_KEY = II.UPDATE_INSTANCE_KEY "
+//					+ "WHERE UPDATE_INSTANCE_NAME = '"+sInstance+"') AND IRD.MED_POL_TITLE='"+Serenity.sessionVariableCalled("IRD.MED_POL_TITLE").toString() +"' AND TSL.TASK_STATUS_DESC in ('Started','Not Started') "
+//					+ "AND ((TTL.TASK_TYPE_DESC LIKE ('"+sReview+"%') AND U.USER_NAME in ('iht_ittest01')))";
+//			break;
+			
+		case "PAYERRULECOUNT":
+
+			sQuery = "SELECT COUNT (IRD.MID_RULE_DOT_VERSION) " +
+					"" +
+					"   FROM IRDM.INTERP_RULES IR" +
+					"       JOIN IRDM.INTERP_RULE_DETAILS IRD   ON IR.INTERP_RULE_KEY = IRD.INTERP_RULE_KEY" +
+					"       JOIN IPDE.TASK_DETAILS TD ON TD.REFERENCE_RULE_ID = IR.INTERP_RULE_KEY" +
+					"       JOIN IPDE.TASK_TYPE_LKP TTL ON TTL.TASK_TYPE_KEY = TD.TASK_TYPE_KEY" +
+					"       JOIN IPDE.TASK_STATUS_LKP TSL           ON TSL.TASK_STATUS_KEY = TD.TASK_STATUS_KEY" +
+					"       JOIN IPDE.USERS U ON U.USER_KEY = TD.TASK_USER_KEY" +
+					"       JOIN IRDM.INTERP_RULE_ICD IRI          ON IRI.INTERP_RULE_KEY = IR.INTERP_RULE_KEY" +
+					"       JOIN IRDM.INTERP_ICD_SOURCES IIS          ON IIS.INTERP_RULE_ICD_KEY = IRI.INTERP_RULE_ICD_KEY" +
+					"       JOIN IRDM.UPDATE_GROUP_LKP UGL          ON UGL.UPDATE_GROUP_KEY = IRI.UPDATE_GROUP_KEY" +
+					"       LEFT JOIN IRDM.SUB_RULES_REF_PRO SRRP          ON IR.INTERP_RULE_KEY = SRRP.INTERP_RULE_KEY" +
+					"       JOIN IPDE.EDITORIAL_STATUS_LKP ESL          ON ESL.EDITORIAL_STATUS_KEY  = TD.EDITORIAL_STATUS_KEY" +
+					"       WHERE     IR.IMPACT_KEY IN (SELECT IMPACT_KEY   FROM IRDM.INTERP_IMPACTS II" +
+					"                                    JOIN IRDM.UPDATE_INSTANCES I      ON I.UPDATE_INSTANCE_KEY =" +
+					"       II.UPDATE_INSTANCE_KEY   WHERE UPDATE_INSTANCE_NAME = '"+ Serenity.sessionVariableCalled("IUInstanceName").toString() +"')  and PAYERS_4_RULE ='"+sInstance+"'" +
+					"                            AND TSL.TASK_STATUS_DESC in ('Started','Not Started')" +
+					"                            AND ((TTL.TASK_TYPE_DESC LIKE ('Final PO Review%') AND U.USER_NAME in ('iht_ittest01') OR TTL.TASK_TYPE_DESC ='Potential Conflicts Review'))";
+					
+			break;
+		
+			default:
+				sQuery="SELECT DISTINCT "+ sColumn  +" FROM IRDM.INTERP_RULES IR JOIN IRDM.INTERP_RULE_DETAILS IRD ON IR.INTERP_RULE_KEY = IRD.INTERP_RULE_KEY "
+						+ " JOIN IPDE.TASK_DETAILS TD ON TD.REFERENCE_RULE_ID = IR.INTERP_RULE_KEY JOIN IPDE.TASK_TYPE_LKP TTL ON TTL.TASK_TYPE_KEY = TD.TASK_TYPE_KEY "
+						+ " JOIN IPDE.TASK_STATUS_LKP TSL ON TSL.TASK_STATUS_KEY = TD.TASK_STATUS_KEY JOIN IPDE.USERS U ON U.USER_KEY = TD.TASK_USER_KEY "
+						+ " JOIN IRDM.INTERP_RULE_ICD IRI ON IRI.INTERP_RULE_KEY = IR.INTERP_RULE_KEY JOIN IRDM.INTERP_ICD_SOURCES IIS ON IIS.INTERP_RULE_ICD_KEY = IRI.INTERP_RULE_ICD_KEY "
+						+ " JOIN IRDM.UPDATE_GROUP_LKP UGL ON UGL.UPDATE_GROUP_KEY = IRI.UPDATE_GROUP_KEY LEFT JOIN IRDM.SUB_RULES_REF_PRO SRRP ON IR.INTERP_RULE_KEY = SRRP.INTERP_RULE_KEY "
+						+ " JOIN IPDE.EDITORIAL_STATUS_LKP ESL ON ESL.EDITORIAL_STATUS_KEY  = TD.EDITORIAL_STATUS_KEY WHERE IR.IMPACT_KEY IN "
+						+ " (SELECT IMPACT_KEY FROM IRDM.INTERP_IMPACTS II JOIN IRDM.UPDATE_INSTANCES I ON I.UPDATE_INSTANCE_KEY = II.UPDATE_INSTANCE_KEY "
+						+ " WHERE UPDATE_INSTANCE_NAME = '"+sInstance+"') AND IRD.MED_POL_TITLE='"+Serenity.sessionVariableCalled("IRD.MED_POL_TITLE").toString() +"' "
+								+ " AND IRD.TOPIC_TITLE ='"+ Serenity.sessionVariableCalled("IRD.TOPIC_TITLE").toString() +"' AND TSL.TASK_STATUS_DESC in ('Started','Not Started') "
+						+ " AND ((TTL.TASK_TYPE_DESC LIKE ('"+sReview+"%') AND U.USER_NAME in ('iht_ittest01')))";
+			break;
+	
+		}
+        
+		System.out.println("sQuery::" +sQuery);
+        return  sQuery;
+        
+
+	}
+	public static String sQuerygetRuleDetails(String sInstance, String sMidRule, String sDbColumn) {
+		
+		 String sQuery = "SELECT IRD.sub_rule_desc,IRD.sub_rule_script,IRD.sub_rule_rationale,IRD.sub_rule_notes,IRD.reference, IRD.dos_from, IRD.dos_to FROM IRDM.INTERP_RULES IR JOIN IRDM.INTERP_RULE_DETAILS IRD ON IR.INTERP_RULE_KEY = IRD.INTERP_RULE_KEY" +
+			" JOIN IPDE.TASK_DETAILS TD ON TD.REFERENCE_RULE_ID = IR.INTERP_RULE_KEY JOIN IPDE.TASK_TYPE_LKP TTL ON TTL.TASK_TYPE_KEY = TD.TASK_TYPE_KEY JOIN IPDE.TASK_STATUS_LKP TSL ON TSL.TASK_STATUS_KEY = TD.TASK_STATUS_KEY" +
+			" JOIN IPDE.USERS U ON U.USER_KEY = TD.TASK_USER_KEY JOIN IRDM.INTERP_RULE_ICD IRI ON IRI.INTERP_RULE_KEY = IR.INTERP_RULE_KEY  JOIN IRDM.INTERP_ICD_SOURCES IIS ON IIS.INTERP_RULE_ICD_KEY = IRI.INTERP_RULE_ICD_KEY" +
+			" JOIN IRDM.UPDATE_GROUP_LKP UGL ON UGL.UPDATE_GROUP_KEY = IRI.UPDATE_GROUP_KEY LEFT JOIN IRDM.SUB_RULES_REF_PRO SRRP ON IR.INTERP_RULE_KEY = SRRP.INTERP_RULE_KEY JOIN IPDE.EDITORIAL_STATUS_LKP ESL  ON ESL.EDITORIAL_STATUS_KEY  = TD.EDITORIAL_STATUS_KEY" +
+			" WHERE     IR.IMPACT_KEY IN (SELECT IMPACT_KEY FROM IRDM.INTERP_IMPACTS II JOIN IRDM.UPDATE_INSTANCES I ON I.UPDATE_INSTANCE_KEY = II.UPDATE_INSTANCE_KEY" +
+			" WHERE UPDATE_INSTANCE_NAME = 'ICD') AND IR.SUB_RULE_KEY = '97333' AND ((TTL.TASK_TYPE_DESC LIKE ('Final PO Review%'))) ";
+			
+		 return sQuery;
+	}
+	
+	public static String sQueryGetRetriveDetails (String sColumn, String sTaskType, String sTaskStatus){
+
+		
+		//Columns can retrive ::MID_RULE_DOT_VERSION,U.USER_ID, PAYERS_4_RULE, TASK_TYPE_DESC, TASK_STATUS_DESC
+		String sQuery = "  SELECT "+ sColumn  +" FROM IRDM.INTERP_RULES IR JOIN IRDM.INTERP_RULE_DETAILS IRD ON IR.INTERP_RULE_KEY = IRD.INTERP_RULE_KEY JOIN IPDE.TASK_DETAILS TD ON TD.REFERENCE_RULE_ID = IR.INTERP_RULE_KEY" +
+				"     LEFT JOIN IPDE.CPM_TASK_DETAILS CTD ON TD.TASK_DETAIL_KEY = CTD.TASK_DETAIL_KEY JOIN IPDE.TASK_TYPE_LKP TTL ON TTL.TASK_TYPE_KEY = CASE WHEN TD.TASK_TYPE_KEY = 16 THEN CTD.TASK_TYPE_KEY  ELSE TD.TASK_TYPE_KEY " +
+				"     END JOIN IPDE.TASK_STATUS_LKP TSL ON TSL.TASK_STATUS_KEY = CASE WHEN TD.TASK_TYPE_KEY = 16 THEN CTD.TASK_STATUS_KEY ELSE TD.TASK_STATUS_KEY END  JOIN IPDE.USERS U  ON U.USER_KEY = CASE WHEN TD.TASK_TYPE_KEY = 16 " +
+				"     THEN CTD.USER_KEY ELSE TD.TASK_USER_KEY END WHERE IR.IMPACT_KEY IN (SELECT IMPACT_KEY FROM IRDM.INTERP_IMPACTS II JOIN IRDM.UPDATE_INSTANCES I ON I.UPDATE_INSTANCE_KEY = II.UPDATE_INSTANCE_KEY" +
+				"    WHERE UPDATE_INSTANCE_NAME = '"+Serenity.sessionVariableCalled("IUInstanceName").toString()+"')  AND TASK_TYPE_DESC ='"+sTaskType+"' AND TSL.TASK_STATUS_DESC = '"+sTaskStatus+"'";
+		System.out.println("sQuery::" +sQuery);
+		return sQuery;
+	}
+	
+	public static String sQueryGetImpactDesc (String sColumn){
+			
+		String sQuery = "SELECT "+sColumn+" FROM IRDM.INTERP_IMPACTS II JOIN IRDM.UPDATE_INSTANCES I ON I.UPDATE_INSTANCE_KEY = II.UPDATE_INSTANCE_KEY WHERE UPDATE_INSTANCE_NAME = '"+Serenity.sessionVariableCalled("IUInstanceName").toString()+"'";
+		System.out.println("sQuery::" +sQuery);
+		return sQuery;
+	}
+	
+	public static String sQueryGetRuleDetails(String sColumn, String sInstance, String sMidRule){
+		
+		String sQuery = " SELECT  "+ sColumn  +" FROM IRDM.INTERP_RULE_DETAILS where INTERP_RULE_KEY IN( SELECT IRD.INTERP_RULE_KEY FROM IRDM.INTERP_RULES IR JOIN IRDM.INTERP_RULE_DETAILS IRD ON IR.INTERP_RULE_KEY = IRD.INTERP_RULE_KEY JOIN IPDE.TASK_DETAILS TD ON TD.REFERENCE_RULE_ID = IR.INTERP_RULE_KEY" +
+				"     LEFT JOIN IPDE.CPM_TASK_DETAILS CTD ON TD.TASK_DETAIL_KEY = CTD.TASK_DETAIL_KEY JOIN IPDE.TASK_TYPE_LKP TTL ON TTL.TASK_TYPE_KEY = CASE WHEN TD.TASK_TYPE_KEY = 16 THEN CTD.TASK_TYPE_KEY  ELSE TD.TASK_TYPE_KEY " +
+				"     END JOIN IPDE.TASK_STATUS_LKP TSL ON TSL.TASK_STATUS_KEY = CASE WHEN TD.TASK_TYPE_KEY = 16 THEN CTD.TASK_STATUS_KEY ELSE TD.TASK_STATUS_KEY END  JOIN IPDE.USERS U  ON U.USER_KEY = CASE WHEN TD.TASK_TYPE_KEY = 16 " +
+				"     THEN CTD.USER_KEY ELSE TD.TASK_USER_KEY END WHERE IR.IMPACT_KEY IN (SELECT IMPACT_KEY FROM IRDM.INTERP_IMPACTS II JOIN IRDM.UPDATE_INSTANCES I ON I.UPDATE_INSTANCE_KEY = II.UPDATE_INSTANCE_KEY" +
+				"    WHERE UPDATE_INSTANCE_NAME = '"+sInstance+"') AND IRD.MID_RULE_DOT_VERSION  ='"+sMidRule+"' )";
+		return sQuery;
+		
+	}
+	
+	public static String sQueryGetAllRulesonTaskStatus(String sColumn, String sInstance, String sMidRule){
+		
+		String sQuery = "SELECT DISTINCT "+ sColumn  +"  FROM IRDM.INTERP_RULES IR   JOIN IRDM.INTERP_RULE_DETAILS IRD  ON IR.INTERP_RULE_KEY = IRD.INTERP_RULE_KEY JOIN IPDE.TASK_DETAILS TD ON TD.REFERENCE_RULE_ID = IR.INTERP_RULE_KEY" +
+				" JOIN IPDE.TASK_TYPE_LKP TTL ON TTL.TASK_TYPE_KEY = TD.TASK_TYPE_KEY JOIN IPDE.TASK_STATUS_LKP TSL ON TSL.TASK_STATUS_KEY = TD.TASK_STATUS_KEY WHERE IR.IMPACT_KEY IN (SELECT IMPACT_KEY FROM IRDM.INTERP_IMPACTS II" +
+				" JOIN IRDM.UPDATE_INSTANCES I  ON I.UPDATE_INSTANCE_KEY = II.UPDATE_INSTANCE_KEY WHERE UPDATE_INSTANCE_NAME = '"+sInstance+"')  AND TSL.TASK_STATUS_DESC = '"+sMidRule+"'";
+		return sQuery;
+	}
+		public static String sQueryGetAllRulesforInstance(String sColumn, String sInstance, String sMidRule){
+			
+			String sQuery = "SELECT DISTINCT "+ sColumn  +"  FROM IRDM.INTERP_RULES IR   JOIN IRDM.INTERP_RULE_DETAILS IRD  ON IR.INTERP_RULE_KEY = IRD.INTERP_RULE_KEY JOIN IPDE.TASK_DETAILS TD ON TD.REFERENCE_RULE_ID = IR.INTERP_RULE_KEY" +
+					" JOIN IPDE.TASK_TYPE_LKP TTL ON TTL.TASK_TYPE_KEY = TD.TASK_TYPE_KEY JOIN IPDE.TASK_STATUS_LKP TSL ON TSL.TASK_STATUS_KEY = TD.TASK_STATUS_KEY WHERE IR.IMPACT_KEY IN (SELECT IMPACT_KEY FROM IRDM.INTERP_IMPACTS II" +
+					" JOIN IRDM.UPDATE_INSTANCES I  ON I.UPDATE_INSTANCE_KEY = II.UPDATE_INSTANCE_KEY WHERE UPDATE_INSTANCE_NAME = '"+sInstance+"') and IR.CANDIDATE_10 = -1 ";
+			return sQuery;
+		
+	}
+		
+		public static String sQueryCountMedTopic(String sColumn, String sInstance, String sDropDownValue){
+			
+						
+			String sQuery = "SELECT count( "+ sColumn  +") FROM IRDM.INTERP_RULES IR JOIN IRDM.INTERP_RULE_DETAILS IRD ON IR.INTERP_RULE_KEY = IRD.INTERP_RULE_KEY" +
+					" JOIN IPDE.TASK_DETAILS TD ON TD.REFERENCE_RULE_ID = IR.INTERP_RULE_KEY JOIN IPDE.TASK_TYPE_LKP TTL ON TTL.TASK_TYPE_KEY = TD.TASK_TYPE_KEY " +
+					" JOIN IPDE.TASK_STATUS_LKP TSL ON TSL.TASK_STATUS_KEY = TD.TASK_STATUS_KEY JOIN IPDE.USERS U ON U.USER_KEY = TD.TASK_USER_KEY JOIN IRDM.INTERP_RULE_ICD IRI" +
+					" ON IRI.INTERP_RULE_KEY = IR.INTERP_RULE_KEY JOIN IRDM.INTERP_ICD_SOURCES IIS ON IIS.INTERP_RULE_ICD_KEY = IRI.INTERP_RULE_ICD_KEY" +
+					" JOIN IRDM.UPDATE_GROUP_LKP UGL ON UGL.UPDATE_GROUP_KEY = IRI.UPDATE_GROUP_KEY LEFT JOIN IRDM.SUB_RULES_REF_PRO SRRP" +
+					" ON IR.INTERP_RULE_KEY = SRRP.INTERP_RULE_KEY JOIN IPDE.EDITORIAL_STATUS_LKP ESL ON ESL.EDITORIAL_STATUS_KEY  = TD.EDITORIAL_STATUS_KEY" +
+					" WHERE "+ sColumn  +" = '"+sDropDownValue+"' and IR.IMPACT_KEY IN (SELECT IMPACT_KEY FROM IRDM.INTERP_IMPACTS II JOIN IRDM.UPDATE_INSTANCES I" +
+					" ON I.UPDATE_INSTANCE_KEY = II.UPDATE_INSTANCE_KEY WHERE UPDATE_INSTANCE_NAME = '"+sInstance+"') AND TSL.TASK_STATUS_DESC in" +
+					" ('Started','Not Started') AND ((TTL.TASK_TYPE_DESC LIKE ('Final PO Review%') AND U.USER_NAME in ('iht_ittest01')))";
+			System.out.print(sQuery);
+			return sQuery;
+	}
+		public static String sQueryRuleHistory2(String sColumn, String sTaskTypeDesc,String sTaskStatus, String sInstance) {
+			
+			String sQuery = "select distinct ( "+ sColumn  +") from irdm.update_instances UI,  irdm.interp_impacts im,irdm.interp_rules ir,irdm.interp_rule_details ird,ipde.Task_details TD,IPDE_hist.TASK_DETAILS_hist TDH , " +
+					" ipde.users u,ipde.Task_type_lkp TTL,ipde.task_status_lkp TSL where  UI.UPDATE_INSTANCE_KEY = IM.UPDATE_INSTANCE_KEY " +
+					" and IM.IMPACT_KEY = IR.IMPACT_KEY and ir.INTERP_RULE_KEY =ird.INTERP_RULE_KEY and  IR.INTERP_RULE_KEY = TD.REFERENCE_RULE_ID AND Td.TASK_DETAIL_KEY = TDH.TASK_DETAIL_KEY " +
+					" and Tdh.TASK_TYPE_KEY = TTL.TASK_TYPE_KEY and Tdh.TASK_STATUS_KEY= TSL.TASK_STATUS_KEY and u.user_key = tdh.TASK_USER_KEY and UI.UPDATE_INSTANCE_NAME = '"+sInstance+"'"  +
+					" and MID_RULE_DOT_VERSION= '"+Serenity.sessionVariableCalled("MidRuleVersion").toString()+"' and TTL.TASK_TYPE_DESC = '"+sTaskTypeDesc+"' and Task_Status_Desc = '"+sTaskStatus+"'" ;
+					
+			return sQuery;
+		}
+		
+		public static String sQueryRuleHistory(String sColumn, String sTaskTypeDesc,String sTaskStatus, String sInstance) {
+			String sQuery = ""
+					+ "select distinct Tdh.HIST_START "
+					+ "from irdm.update_instances UI, "
+					+ " irdm.interp_impacts im, "
+					+ "irdm.interp_rules ir, "
+					+ "irdm.interp_rule_details ird, "
+					+ "ipde.Task_details TD, "
+					+ "IPDE_hist.TASK_DETAILS_hist TDH , "
+					+ "ipde.users u, "
+					+ "ipde.Task_type_lkp TTL, "
+					+ "ipde.task_status_lkp TSL "
+					+ "where  UI.UPDATE_INSTANCE_KEY = IM.UPDATE_INSTANCE_KEY "
+					+ "and IM.IMPACT_KEY = IR.IMPACT_KEY "
+					+ "and ir.INTERP_RULE_KEY =ird.INTERP_RULE_KEY "
+					+ "and  IR.INTERP_RULE_KEY = TD.REFERENCE_RULE_ID "
+					+ "AND Td.TASK_DETAIL_KEY = TDH.TASK_DETAIL_KEY "
+					+ "and Tdh.TASK_TYPE_KEY = TTL.TASK_TYPE_KEY "
+					+ "and Tdh.TASK_STATUS_KEY= TSL.TASK_STATUS_KEY "
+					+ "and u.user_key = tdh.TASK_USER_KEY "
+					+ "and UI.UPDATE_INSTANCE_NAME = '"+sInstance+"' "
+					+ "and MID_RULE_DOT_VERSION= '"+Serenity.sessionVariableCalled("MidRuleVersion").toString()+"' "
+					+ "and task_status_desc = '"+sTaskStatus+"'"
+					+ "and task_type_desc = '"+sTaskTypeDesc+"' order by Tdh.HIST_START";
+			
+			return sQuery;
+		}
+		
+		public static String sQueryCPMRuleHistory(String sColumn, String sTaskTypeDesc,String sTaskStatus, String sInstance) {
+			String sQuery = ""
+					+ "select distinct Tdh.HIST_START "
+					+ " from irdm.update_instances UI, "
+					+ " irdm.interp_impacts im, "
+					+ " irdm.interp_rules ir, "
+					+ " irdm.interp_rule_details ird, "
+					+ " ipde.Task_details TD, "
+					+ " IPDE_hist.TASK_DETAILS_hist TDH , "
+					+ " ipde.users u, "
+					+ " ipde.Task_type_lkp TTL, "
+					+ " ipde.task_status_lkp TSL "
+					+ " where  UI.UPDATE_INSTANCE_KEY = IM.UPDATE_INSTANCE_KEY "
+					+ " and IM.IMPACT_KEY = IR.IMPACT_KEY "
+					+ " and ir.INTERP_RULE_KEY =ird.INTERP_RULE_KEY "
+					+ " and  IR.INTERP_RULE_KEY = TD.REFERENCE_RULE_ID "
+					+ " AND Td.TASK_DETAIL_KEY = TDH.TASK_DETAIL_KEY "
+					+ " and Tdh.TASK_TYPE_KEY = TTL.TASK_TYPE_KEY "
+					+ " and Tdh.TASK_STATUS_KEY= TSL.TASK_STATUS_KEY "
+					+ " and u.user_key = tdh.TASK_USER_KEY "
+					+ " and UI.UPDATE_INSTANCE_NAME = '"+sInstance+"'"
+					+ " and MID_RULE_DOT_VERSION= '"+Serenity.sessionVariableCalled("MidRuleVersion").toString()+"'"
+					+ " "
+					+ " and  task_type_desc = '"+sTaskTypeDesc+"'"
+					+ " Union "
+					+ " select distinct cTdh.HIST_START "
+					+ " from irdm.update_instances UI, "
+					+ " irdm.interp_impacts im, "
+					+ " irdm.interp_rules ir, "
+					+ " irdm.interp_rule_details ird, "
+					+ " ipde.Task_details TD, "
+					+ " IPDE_hist.TASK_DETAILS_hist TDH , "
+					+ " ipde_hist.CPM_Task_DETAILS_HIST CTDH, "
+					+ " ipde.users u, "
+					+ " ipde.Task_type_lkp TTL, "
+					+ " ipde.task_status_lkp TSL "
+					+ " where  UI.UPDATE_INSTANCE_KEY = IM.UPDATE_INSTANCE_KEY "
+					+ " and IM.IMPACT_KEY = IR.IMPACT_KEY "
+					+ " and ir.INTERP_RULE_KEY =ird.INTERP_RULE_KEY "
+					+ " and  IR.INTERP_RULE_KEY = TD.REFERENCE_RULE_ID "
+					+ " AND Td.TASK_DETAIL_KEY = CTDH.TASK_DETAIL_KEY(+) "
+					+ " and u.user_key = Ctdh.USER_KEY "
+					+ " and CTdh.TASK_TYPE_KEY = TTL.TASK_TYPE_KEY "
+					+ " and CTdh.TASK_STATUS_KEY= TSL.TASK_STATUS_KEY "
+					+ " and UI.UPDATE_INSTANCE_NAME = '"+sInstance+"'"
+					+ " and MID_RULE_DOT_VERSION= '"+Serenity.sessionVariableCalled("MidRuleVersion").toString()+"'"
+					+ " and user_id = 'iht_ittest01' "
+					+ "order by 1";
+			
+			return sQuery;
+		}
+	
+	
+}
